@@ -1,6 +1,6 @@
-import requests
+import urllib.request
 import re
-import sys
+import ssl
 
 URL = "https://www.goaloo.com/"
 
@@ -14,35 +14,26 @@ headers = {
 print("TEST GOALOO - inizio", flush=True)
 
 try:
-    r = requests.get(URL, headers=headers, timeout=30)
-    print(f"Status code: {r.status_code}", flush=True)
-    print(f"Lunghezza pagina: {len(r.text)}", flush=True)
+    req = urllib.request.Request(URL, headers=headers)
+    ctx = ssl.create_default_context()
+    with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
+        print(f"Status code: {resp.status}", flush=True)
+        text = resp.read().decode("utf-8", errors="ignore")
+        print(f"Lunghezza pagina: {len(text)}", flush=True)
 
-    if r.status_code != 200:
-        print(f"BLOCCATO - status {r.status_code}", flush=True)
-        sys.exit(0)
+        for squadra in ["Portugal", "Austria", "Real Oviedo", "Sweden"]:
+            if squadra in text:
+                print(f"TROVATA: {squadra}", flush=True)
+            else:
+                print(f"NON TROVATA: {squadra}", flush=True)
 
-    # Conta quante partite live ci sono nel codice
-    # Goaloo le mette come team names nel JS
-    partite = re.findall(r'"homeName"\s*:\s*"([^"]+)"', r.text)
-    if not partite:
-        # prova secondo pattern
-        partite = re.findall(r"team.*?(Oviedo|Portugal|Austria)", r.text)
-
-    print(f"Partite trovate (pattern1): {len(partite)}", flush=True)
-
-    # Controllo semplice: la pagina contiene le squadre che hai visto tu?
-    for squadra in ["Portugal", "Austria", "Real Oviedo", "Sweden"]:
-        if squadra in r.text:
-            print(f"TROVATA: {squadra}", flush=True)
+        if "Portugal" in text:
+            print("RISULTATO: GOALOO NON BLOCCA - possiamo andare avanti", flush=True)
         else:
-            print(f"NON TROVATA: {squadra}", flush=True)
-
-    if "Portugal" in r.text:
-        print("RISULTATO: GOALOO NON BLOCCA - possiamo andare avanti", flush=True)
-    else:
-        print("RISULTATO: GOALOO NON MOSTRA DATI - forse serve altro metodo", flush=True)
+            print("RISULTATO: GOALOO NON MOSTRA DATI - serve altro metodo", flush=True)
 
 except Exception as e:
     print(f"ERRORE: {type(e).__name__}: {e}", flush=True)
     print("RISULTATO: BLOCCATO / ERRORE", flush=True)
+
+print("TEST FINITO", flush=True)
