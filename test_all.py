@@ -12,10 +12,6 @@ PROXY_PASS = os.getenv("PROXY_PASS", "")
 URLS_DA_PROVARE = [
     "https://www.goaloo.com/",
     "https://www.goaloo.com/soccer",
-    "https://live.goaloo.com/",
-    "https://www.goaloo.com/livescore",
-    "https://goaloo.com/",
-    "https://www.goaloo.com/soccer/livescore",
 ]
 
 def log(m): print(f"[{time.strftime('%H:%M:%S')}] {m}", flush=True)
@@ -46,8 +42,8 @@ def send_mail(subject, body):
 def get_live_matches(pg):
     for url in URLS_DA_PROVARE:
         try:
-            pg.goto(url, wait_until="networkidle", timeout=60000)
-            pg.wait_for_timeout(8000)
+            pg.goto(url, wait_until="domcontentloaded", timeout=60000)
+            pg.wait_for_timeout(12000)
             html = pg.content()
             rows = pg.query_selector_all("tr[id^='tr_']")
             log(f"PROVA {url} -> URL finale: {pg.url} | Titolo: {pg.title()} | HTML len={len(html)} | tr_={len(rows)}")
@@ -79,11 +75,11 @@ def get_live_matches(pg):
             continue
     return [], ""
 
-def get_spread_averages(pg, match_id, base_url):
-    for url in [f"https://www.goaloo.com/odds/{match_id}", f"https://live.goaloo.com/odds/{match_id}", f"{base_url.rstrip('/')}/odds/{match_id}"]:
+def get_spread_averages(pg, match_id):
+    for url in [f"https://www.goaloo.com/odds/{match_id}"]:
         try:
-            pg.goto(url, wait_until="networkidle", timeout=30000)
-            pg.wait_for_timeout(3000)
+            pg.goto(url, wait_until="domcontentloaded", timeout=30000)
+            pg.wait_for_timeout(5000)
             rows = pg.query_selector_all("tr")
             op_vals, cu_vals = [], []
             for tr in rows:
@@ -133,7 +129,7 @@ if __name__ == "__main__":
         lines = []
         for m in matches:
             if not (15 <= m["minute"] <= 20 or 50 <= m["minute"] <= 60): continue
-            op, cu = get_spread_averages(pg, m["id"], base_url)
+            op, cu = get_spread_averages(pg, m["id"])
             if op is None or cu is None:
                 log(f"SKIP {m['home']} vs {m['away']} {m['minute']}' {m['sh']}-{m['sa']} - no OP/CU"); continue
             log(f"CHECK {m['home']} vs {m['away']} {m['minute']}' {m['sh']}-{m['sa']} OP={op} CU={cu}")
