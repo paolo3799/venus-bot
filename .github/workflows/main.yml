@@ -11,5 +11,8 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python test_all.py
         env:
-          EMAIL_FROM: paolo.zapp82@gmail.com
-          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_FROM: ${{ secrets.GMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.GMAIL_PASS }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
+          EMAIL_TO: ${{ secrets.GMAIL_USER }}
