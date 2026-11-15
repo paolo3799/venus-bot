@@ -5,6 +5,9 @@ from playwright.sync_api import sync_playwright
 EMAIL_TO = "paolo.zapp82@gmail.com"
 EMAIL_FROM = os.getenv("GMAIL_USER", os.getenv("EMAIL_FROM", "paolo.zapp82@gmail.com"))
 EMAIL_PASS = os.getenv("GMAIL_PASS", os.getenv("EMAIL_PASS", ""))
+PROXY_SERVER = os.getenv("PROXY_SERVER", "")
+PROXY_USER = os.getenv("PROXY_USER", "")
+PROXY_PASS = os.getenv("PROXY_PASS", "")
 
 def log(m): print(f"[{time.strftime('%H:%M:%S')}] {m}", flush=True)
 
@@ -34,8 +37,13 @@ def send_mail(subject, body):
 def get_live_matches(pg):
     pg.goto("https://live.goaloo.com/soccer", wait_until="networkidle", timeout=60000)
     pg.wait_for_timeout(8000)
+    html = pg.content()
+    log(f"URL finale: {pg.url}")
+    log(f"Titolo: {pg.title()}")
+    log(f"HTML len={len(html)}")
+    log(f"HTML inizio: {html[:500]}")
     rows = pg.query_selector_all("tr[id^='tr_']")
-    log(f"Righe tr_ trovate: {len(rows)} - HTML len={len(pg.content())}")
+    log(f"Righe tr_ trovate: {len(rows)}")
     matches = []
     for row in rows:
         try:
@@ -97,8 +105,16 @@ def check_rules(m, op, cu):
     return None
 
 if __name__ == "__main__":
+    log(f"PROXY configurato: {'SI' if PROXY_SERVER else 'NO'} server={PROXY_SERVER[:30] if PROXY_SERVER else ''}")
+    proxy_cfg = None
+    if PROXY_SERVER:
+        proxy_cfg = {"server": PROXY_SERVER}
+        if PROXY_USER: proxy_cfg["username"] = PROXY_USER
+        if PROXY_PASS: proxy_cfg["password"] = PROXY_PASS
     with sync_playwright() as p:
-        b = p.chromium.launch(headless=True, args=["--no-sandbox"])
+        launch_kwargs = {"headless": True, "args": ["--no-sandbox"]}
+        if proxy_cfg: launch_kwargs["proxy"] = proxy_cfg
+        b = p.chromium.launch(**launch_kwargs)
         pg = b.new_page(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36")
         matches = get_live_matches(pg)
         lines = []
